@@ -17,8 +17,6 @@ function fixDataLengths(data) {
 
 function fixUpData(data) {
 
-
-
     function addPaceLines(data) {
         var keys = Object.keys(data[0]);
         console.log("keys:", keys);
@@ -41,15 +39,17 @@ function fixUpData(data) {
         var sumDataSet = data.map(getSumDataSet),
             lineFun = ss.linearRegressionLine(ss.linearRegression(sumDataSet)),
             currentY = lineFun(0),
-            x = -1;
-        //plot points untill it crosses x axes
-        while (currentY > 0 && x < 25) {
+            x = -1,
+            maxNumberOfPlottedPoints = 25;
+        //plot points until it crosses x axes or we have too many
+        while (currentY > 0 && x < maxNumberOfPlottedPoints) {
             x += 1;
             currentY = lineFun(x);
             if (typeof data[x] === "undefined") {
                 data[x] = {};
             }
-            data[x].Pace = currentY;
+            //save the value to the series rounded down
+            data[x].Pace = Math.floor(currentY);
         }
 
         //console.log(sumDataSet);
@@ -59,19 +59,21 @@ function fixUpData(data) {
     function convertToC3JSON(data) {
         var dataObj = {},
             keys = Object.keys(data[0]);
-        console.log(keys);
+        console.log("keys:", keys);
 
-        //for each key in the first obj get the col that goes with it
+        //for each key in the first obj get the all the data points in the col that goes with it
         keys.forEach(function (key) {
             dataObj[key] = data.map(function (point) {
+                //get the value or get a val of 0
                 return point[key] || 0;
             })
         });
+        console.log("C3 JSON dataObj:", dataObj);
         return dataObj;
     }
 
     addPaceLines(data);
-    console.log("data:", data);
+    console.log("fixed data:", data);
     return convertToC3JSON(data);
 }
 
@@ -80,9 +82,10 @@ function makeChart(dataIn) {
     function makeGroups(data) {
         var skip = ["Pace"],
             list = Object.keys(data).filter(function (name) {
+                //keep the names not on the skip list
                 return skip.indexOf(name) === -1;
             });
-        console.log("list", list);
+        console.log("seriers that are in the bars group", list);
         return list;
     }
 

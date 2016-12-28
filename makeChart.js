@@ -1,6 +1,6 @@
 /* estlint-env browser */
 /* eslint no-console:0, no-unused-vars:0 */
-/* global c3, ss, console */
+/* global c3, ss, console, moment */
 
 function fixDataLengths(data) {
     function getLongestLength(longest, current) {
@@ -17,92 +17,149 @@ function fixDataLengths(data) {
 
 function fixUpData(data) {
 
-    function addPaceLines(data) {
-        var keys = Object.keys(data[0]);
-        console.log("keys:", keys);
+    function recordSeriesName(name, showIt, typeOfGraph, data) {
+        data.settings.addedSeries.push({
+            name: name,
+            showIt: showIt,
+            type: typeOfGraph
+        });
+    }
 
-        function getSumDataSet(item, index) {
+    function addSumSeries(data) {
+        //this adds a series record it
+        recordSeriesName("Sum", false, 'line', data);
+
+        // loop the keys so that we get all of them
+        data.series.forEach(function (day) {
             var sum = 0;
-
-            // loop the keys so that we get all of them
-            keys.forEach(function (key) {
-                sum += item[key];
+            data.settings.people.forEach(function (person) {
+                //not planning on not having one but just in case
+                sum += day[person] || 0;
             });
 
-            return [index, sum];
-        }
-
-        function addPaceVals() {
-
-        }
-
-        var sumDataSet = data.map(getSumDataSet),
-            lineFun = ss.linearRegressionLine(ss.linearRegression(sumDataSet)),
-            currentY = lineFun(0),
-            x = -1,
-            maxNumberOfPlottedPoints = 25;
-        //plot points until it crosses x axes or we have too many
-        while (currentY > 0 && x < maxNumberOfPlottedPoints) {
-            x += 1;
-            currentY = lineFun(x);
-            if (typeof data[x] === "undefined") {
-                data[x] = {};
-            }
-            //save the value to the series rounded down
-            data[x].Pace = Math.floor(currentY);
-        }
-
-        //console.log(sumDataSet);
-
-    }
-
-    function convertToC3JSON(data) {
-        var dataObj = {},
-            keys = Object.keys(data[0]);
-        console.log("keys:", keys);
-
-        //for each key in the first obj get the all the data points in the col that goes with it
-        keys.forEach(function (key) {
-            dataObj[key] = data.map(function (point) {
-                //get the value or get a val of 0
-                return point[key] || 0;
-            })
+            //put the data point on the day 
+            day.Sum = sum;
         });
-        console.log("C3 JSON dataObj:", dataObj);
-        return dataObj;
+
     }
 
-    addPaceLines(data);
-    console.log("fixed data:", data);
-    return convertToC3JSON(data);
+    function addTrendLine(data) {
+
+        function makeTrendLineFun(data) {
+            //make it the correct format
+            var sumDataSet = data.series.map(function (item, index) {
+                    return [index, item.Sum];
+                }),
+                calcLinearReg = ss.linearRegression(sumDataSet),
+                makeFun = ss.linearRegressionLine(calcLinearReg);
+
+            return makeFun;
+        }
+
+        var trendLineFun = makeTrendLineFun(data),
+            currentY = 1, //just to enter while loop
+            x = -1,
+            pointsCountMax = 25;
+
+        //this adds a series record it
+        recordSeriesName("Trend", true, 'line', data);
+
+        //add points to Trend until it gets to 0 or we have too many
+        while (currentY >= 0 && x < pointsCountMax) {
+            //next round
+            x += 1;
+            //round it down
+            currentY = trendLineFun(x);
+            //currentY = trendLineFun(x);
+
+            //make sure that we have a place to save it
+            if (typeof data.series[x] === "undefined") {
+                data.series[x] = {};
+            }
+
+            //save the value to the series 
+            if (currentY < 0) {
+                //must be the last round
+                data.series[x].Trend = 0;
+
+            } else {
+                data.series[x].Trend = currentY;
+            }
+        }
+
+    }
+
+    function fixDates(data) {
+        //redo all the dates in case we are missing any from the trendlines
+        data.series.forEach(function (day, index) {
+            var dayZero = moment(data.settings.startDate, "YYYY-MM-DD");
+            day.Date = dayZero.add(index, 'days').format("YYYY-MM-DD");
+        });
+    }
+
+    addSumSeries(data);
+    addTrendLine(data);
+    fixDates(data);
+
+    //add vert Due  date line on graph
+
+    //convertToC3JSON(data);
+
+    return data;
 }
 
 
-function makeChart(dataIn) {
-    function makeGroups(data) {
-        var skip = ["Pace"],
-            list = Object.keys(data).filter(function (name) {
-                //keep the names not on the skip list
-                return skip.indexOf(name) === -1;
-            });
-        console.log("seriers that are in the bars group", list);
-        return list;
+function makeChart(data) {
+
+
+    function makeGraphKeys(data) {
+        function byShowIt(series) {
+            return series.showIt;
+        }
+
+        function toNames(series) {
+            return series.name;
+        }
+
+        var namesToShow = data.settings.addedSeries
+            .filter(byShowIt)
+            .map(toNames);
+
+        return data.settings.people.concat(namesToShow);
+    }
+
+    function makeTypesObj(data) {
+        function makeNameToType(objOut, series) {
+            objOut[series.name] = series.type;
+            return objOut;
+        }
+
+        return data.settings.addedSeries.reduce(makeNameToType, {});
+
     }
 
     var chartSettings = {
         bindto: '#chart',
         data: {
-            json: dataIn,
-            type: 'bar',
-            types: {
-                "Pace": 'line'
+            json: data.series,
+            keys: {
+                x: 'Date',
+                value: makeGraphKeys(data),
             },
-            groups: [makeGroups(data)]
+            type: 'bar',
+            types: makeTypesObj(data),
+            groups: [data.settings.people]
         },
         axis: {
+            x: {
+                type: 'timeseries',
+                tick: {
+                    format: "%m-%d-%Y"
+                }
+            },
             y: {
                 label: {
-                    text: 'Y Label',
+                    text: 'Issues Remaining',
                     position: 'outer-middle'
                 }
             }
@@ -113,40 +170,96 @@ function makeChart(dataIn) {
     c3.generate(chartSettings);
 }
 
-var dataStart = [
-    {
-        Josh: 30,
-        Corey: 200
+
+/*
+    series:
+        will have a value for each person in people, 
+        will have a Date value 
+        will not skip any dates
+    
+*/
+var dataStart = {
+    settings: {
+        startDate: "16-01-01",
+        dueDate: "16-01-01",
+        people: ["Josh", "Corey"],
+        addedSeries: []
+
     },
-    {
-        Josh: 20,
-        Corey: 130
-    },
-    {
-        Josh: 50,
-        Corey: 90
-    },
-    {
-        Josh: 40,
-        Corey: 40
-    },
-    {
-        Josh: 60,
-        Corey: 130
-    },
-    {
-        Josh: 50,
-        Corey: 20
-    }
-];
+    series: [
+        {
+            Josh: 30,
+            Corey: 20,
+            Date: "16-01-01"
+        },
+        {
+            Josh: 25,
+            Corey: 19,
+            Date: "16-01-02"
+        },
+        {
+            Josh: 25,
+            Corey: 19,
+            Date: "16-01-03"
+        },
+        {
+            Josh: 20,
+            Corey: 18,
+            Date: "16-01-04"
+        },
+        {
+            Josh: 15,
+            Corey: 17,
+            Date: "16-01-05"
+        },
+        {
+            Josh: 10,
+            Corey: 16,
+            Date: "16-01-06"
+        }
+]
+}
+
 
 var dataEnd = fixUpData(dataStart);
 
-console.log("converted:", dataEnd);
+console.log("fixed Up data:", dataEnd);
 
+
+makeChart(dataEnd);
+
+/*var dataOld = [
+    {
+        Josh: 30,
+        Corey: 20,
+        Date: "2016-01-01"
+    },
+    {
+        Date: "2016-01-02"
+    },
+    {
+        Date: "2016-01-03"
+    },
+    {
+        Josh: 20,
+        Corey: 18,
+        Date: "2016-01-04"
+    },
+    {
+        Josh: 15,
+        Corey: 17,
+        Date: "2016-01-05"
+    },
+    {
+        Josh: 10,
+        Corey: 16,
+        Date: "2016-01-06"
+    },
+    {
+        Date: "2016-01-07"
+    }
+];
 var data = {
     "Josh": [30, 20, 50, 40, 60, 50],
     "Corey": [200, 130, 90, 240, 130, 220]
-};
-
-makeChart(dataEnd);
+};*/

@@ -154,7 +154,8 @@ function makeChart(data) {
             x: {
                 type: 'timeseries',
                 tick: {
-                    format: "%m-%d-%Y"
+                    format: "%m/%d",
+                    culling: false
                 }
             },
             y: {

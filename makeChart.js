@@ -161,6 +161,13 @@ function makeChart(data) {
             types: makeTypesObj(data),
             groups: [data.settings.people]
         },
+        tooltip: {
+            format: {
+                value: function (value) {
+                    return Math.round(value);
+                }
+            }
+        },
         axis: {
             x: {
                 type: 'timeseries',

@@ -2,6 +2,17 @@
 /* eslint no-console:0, no-unused-vars:0 */
 /* global c3, ss, console, moment */
 
+var constants = {
+    DATE_FORMAT: "YYYY-MM-DD"
+}
+
+function dateIn(year, month, day) {
+    if (year.toString(10).length !== 4) {
+        throw new Error("Year '" + year + "' is not length 4.");
+    }
+    return moment(year + '-' + month + '-' + day, constants.DATE_FORMAT).format(constants.DATE_FORMAT);
+}
+
 function fixDataLengths(data) {
     function getLongestLength(longest, current) {
         var length = data[current].length;
@@ -92,8 +103,8 @@ function fixUpData(data) {
     function fixDates(data) {
         //redo all the dates in case we are missing any from the trendlines
         data.series.forEach(function (day, index) {
-            var dayZero = moment(data.settings.startDate, "YYYY-MM-DD");
-            day.Date = dayZero.add(index, 'days').format("YYYY-MM-DD");
+            var dayZero = moment(data.settings.startDate, constants.DATE_FORMAT);
+            day.Date = dayZero.add(index, 'days').format(constants.DATE_FORMAT);
         });
     }
 
@@ -181,8 +192,8 @@ function makeChart(data) {
 */
 var dataStart = {
     settings: {
-        startDate: "16-01-01",
-        dueDate: "16-01-01",
+        startDate: dateIn(2016, 1, 1),
+        dueDate: dateIn(2016, 1, 10),
         people: ["Josh", "Corey"],
         addedSeries: []
 
@@ -191,32 +202,32 @@ var dataStart = {
         {
             Josh: 30,
             Corey: 20,
-            Date: "16-01-01"
+            Date: dateIn(2016, 1, 1)
         },
         {
             Josh: 25,
             Corey: 19,
-            Date: "16-01-02"
+            Date: dateIn(2016, 1, 2)
         },
         {
             Josh: 25,
             Corey: 19,
-            Date: "16-01-03"
+            Date: dateIn(2016, 1, 3)
         },
         {
             Josh: 20,
             Corey: 18,
-            Date: "16-01-04"
+            Date: dateIn(2016, 1, 4)
         },
         {
             Josh: 15,
             Corey: 17,
-            Date: "16-01-05"
+            Date: dateIn(2016, 1, 5)
         },
         {
             Josh: 10,
             Corey: 16,
-            Date: "16-01-06"
+            Date: dateIn(2016, 1, 6)
         }
 ]
 }

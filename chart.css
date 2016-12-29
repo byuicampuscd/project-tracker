@@ -1,4 +1,14 @@
+/*
 #chart {
-   width: 500px;
-   height: 500px;
+    width: 500px;
+    height: 500px;
+}*/
+
+.c3-target-Due-Date circle {
+    display: none;
 }
+
+
+/*
+ .c3-target-DueDate path { stroke-width: 100px; stroke-opacity: 0.5; }
+*/

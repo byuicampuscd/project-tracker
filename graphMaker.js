@@ -7,6 +7,39 @@ var graphMaker = (function () {
         return moment(date, constants.DATE_FORMAT).add(offset, 'days').format(constants.DATE_FORMAT);
     }
 
+    //make sure its a moment
+    function makeMoment(date) {
+        if (!moment.isMoment(date)) {
+            date = moment(date, constants.DATE_FORMAT);
+        }
+        return date;
+    }
+
+    function dateIsWorkDay(day) {
+        var dayNumber;
+        day = makeMoment(day);
+        dayNumber = day.day();
+
+        return !(dayNumber === 0 || dayNumber === 6);
+    }
+
+    function countWorkDays(startDate, endDate) {
+        var count = 0;
+        //make sure that they are moments
+        startDate = makeMoment(startDate);
+        endDate = makeMoment(endDate);
+
+        //count them up
+        //isBefore because no work on this project on the due day
+        while (startDate.isBefore(endDate)) {
+            if (dateIsWorkDay(startDate)) {
+                count += 1;
+            }
+            startDate.add(1, "day");
+        }
+
+        return count;
+    }
 
     /***********************************************************
      *********************** ADD SERIES ************************
@@ -115,7 +148,7 @@ var graphMaker = (function () {
             pointsCountMax = 25,
             dataPoint, i,
             isPositive = true;
-        console.log("slopeIsNegitive", slopeIsNegitive);
+        //console.log("slopeIsNegitive", slopeIsNegitive);
 
         //go till we get to negitive or the max
         for (i = 0; isPositive && (slopeIsNegitive || i < pointsCountMax); ++i) {
@@ -174,7 +207,7 @@ var graphMaker = (function () {
         //get the last x and y in the sum
         var sumData = getSumSeries(data).data,
             sumLastDay = sumData[sumData.length - 1],
-            diffInDays = moment(data.settings.dueDate, constants.DATE_FORMAT).diff(moment(sumLastDay.x, constants.DATE_FORMAT), "day"),
+            diffInDays = makeMoment(data.settings.dueDate).diff(makeMoment(sumLastDay.x), "day"),
             points = [[0, sumLastDay.y], [diffInDays, 0]],
             lineMBObj = ss.linearRegression(points),
             lineFun = ss.linearRegressionLine(lineMBObj),
@@ -194,6 +227,42 @@ var graphMaker = (function () {
 
         //save it
         addSeries("Adustment Line", seriesOut, true, "line", data);
+    }
+
+    /***********************************************************
+     ******************** ADD OPTIMAL LINE *********************
+     ***********************************************************/
+    function addOptimalLine(data) {
+        //get the first day of sum
+        var sumFirstDay = getSumSeries(data).data[0],
+            workDayCount = countWorkDays(sumFirstDay.x, data.settings.dueDate),
+            totalDayCount = makeMoment(data.settings.dueDate).diff(makeMoment(sumFirstDay.x), "day"),
+            points = [[0, sumFirstDay.y], [workDayCount, 0]],
+            lineMBObj = ss.linearRegression(points),
+            lineFun = ss.linearRegressionLine(lineMBObj),
+            seriesOut = [],
+            i, day, yesterday, funIndex;
+
+        // plot points from last to due day
+        for (i = 0, funIndex = 0; i <= totalDayCount; ++i) {
+            day = offsetFromDate(sumFirstDay.x, i);
+            yesterday = offsetFromDate(sumFirstDay.x, i - 1);
+            //this will take into account that work will no be done if we are not working
+            //the line will stay flat
+            if (dateIsWorkDay(yesterday) && i !== 0) {
+                funIndex += 1;
+            }
+
+            seriesOut.push({
+                x: day,
+                y: lineFun(funIndex)
+            });
+
+        }
+        console.log("workDayCount:", workDayCount);
+
+        //save it
+        addSeries("Pace Line", seriesOut, true, "line", data);
     }
 
     /***********************************************************
@@ -291,11 +360,11 @@ var graphMaker = (function () {
             groups = data.series.map(makeGroups),
             ticks = makeTicks(seriesToPlot);
 
-        console.log("seriesToPlot:", seriesToPlot);
-        console.log("xs:", JSON.stringify(xs, null, 4));
-        console.log("columns:", JSON.stringify(columns, null, 4));
-        console.log("types:", JSON.stringify(types, null, 4));
-        console.log("groups:", JSON.stringify(groups, null, 4));
+        //        console.log("seriesToPlot:", seriesToPlot);
+        //        console.log("xs:", JSON.stringify(xs, null, 4));
+        //        console.log("columns:", JSON.stringify(columns, null, 4));
+        //        console.log("types:", JSON.stringify(types, null, 4));
+        //        console.log("groups:", JSON.stringify(groups, null, 4));
 
 
         //put it all together
@@ -346,6 +415,7 @@ var graphMaker = (function () {
         addTrendLine(data);
         addDueDateLine(data);
         addAdjustmentLine(data);
+        addOptimalLine(data);
         console.log("fixed data:", data);
 
         //plot it

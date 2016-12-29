@@ -9,57 +9,11 @@
         will not skip any dates
     
 */
-var dataStart = {
-    settings: {
-        startDate: dateIn(2016, 1, 1),
-        dueDate: dateIn(2016, 1, 11),
-        people: ["Josh", "Corey"],
-        addedSeries: []
 
-    },
-    series: [
-        {
-            Josh: 30,
-            Corey: 20,
-            Date: dateIn(2016, 1, 1)
-        },
-        {
-            Josh: 25,
-            Corey: 19,
-            Date: dateIn(2016, 1, 2)
-        },
-        {
-            Josh: 25,
-            Corey: 19,
-            Date: dateIn(2016, 1, 3)
-        },
-        {
-            Josh: 20,
-            Corey: 18,
-            Date: dateIn(2016, 1, 4)
-        },
-        {
-            Josh: 15,
-            Corey: 17,
-            Date: dateIn(2016, 1, 5)
-        },
-        {
-            Josh: 10,
-            Corey: 16,
-            Date: dateIn(2016, 1, 6)
-        }
-]
-};
-
-
-/*
 var data = {
     settings: {
         startDate: dateIn(2016, 1, 1),
-        dueDate: dateIn(2016, 1, 11),
-        people: ["Josh", "Corey"],
-        addedSeries: []
-
+        dueDate: dateIn(2016, 1, 5),
     },
     series: [
         {
@@ -110,6 +64,4 @@ var data = {
     ]
 }
 
-*/
-
-graphMaker(dataStart);
+graphMaker(data);

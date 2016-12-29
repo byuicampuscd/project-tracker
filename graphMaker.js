@@ -162,7 +162,7 @@ var graphMaker = (function () {
             ];
 
         //save it
-        addSeries("DueDate", seriesOut, true, "line", data);
+        addSeries("Due Date", seriesOut, true, "line", data);
     }
 
     /***********************************************************

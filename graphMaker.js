@@ -4,6 +4,9 @@
 
 var graphMaker = (function () {
 
+    /***********************************************************
+     *********************** ADD SERIES ************************
+     ***********************************************************/
     function addSeries(name, series, showIt, typeOfGraph, data) {
         if (!Array.isArray(data.addedSeries)) {
             data.addedSeries = [];
@@ -17,36 +20,42 @@ var graphMaker = (function () {
         });
     }
 
+    /***********************************************************
+     ********************* ADD SUM SERIES **********************
+     ***********************************************************/
     function addSumSeries(data) {
         var seriesOut = [];
-        data.series.forEach(function (siri) {
-            //siri get it, thats one series
-            siri.data.forEach(function (dataPoint) {
-                var i,
-                    foundIt = false;
+        data.series.filter(function (siri) {
+                return siri.showIt;
+            })
+            .forEach(function (siri) {
+                //siri get it, thats one series
+                siri.data.forEach(function (dataPoint) {
+                    var i,
+                        foundIt = false;
 
-                //loop them all and one more
-                for (i = 0; i < seriesOut.length; ++i) {
-                    if (seriesOut[i].x === dataPoint.x) {
-                        foundIt = true;
-                        //add to the sum total for that date that is stored in the y val
-                        seriesOut[i].y += dataPoint.y;
+                    //loop them all and one more
+                    for (i = 0; i < seriesOut.length; ++i) {
+                        if (seriesOut[i].x === dataPoint.x) {
+                            foundIt = true;
+                            //add to the sum total for that date that is stored in the y val
+                            seriesOut[i].y += dataPoint.y;
 
-                        //skip to the end
-                        i = seriesOut.length;
+                            //skip to the end
+                            i = seriesOut.length;
+                        }
+
                     }
 
-                }
-
-                //didn't find it need to add it
-                if (!foundIt) {
-                    seriesOut.push({
-                        x: dataPoint.x,
-                        y: dataPoint.y
-                    });
-                }
+                    //didn't find it need to add it
+                    if (!foundIt) {
+                        seriesOut.push({
+                            x: dataPoint.x,
+                            y: dataPoint.y
+                        });
+                    }
+                });
             });
-        });
 
         //make sure they are in order
         seriesOut.sort(function (a, b) {
@@ -62,6 +71,9 @@ var graphMaker = (function () {
         addSeries("Sum", seriesOut, false, 'line', data);
     }
 
+    /***********************************************************
+     ********************* ADD TREND LINE **********************
+     ***********************************************************/
     function addTrendLine(data) {
 
         function getSumSeries(data) {
@@ -98,10 +110,11 @@ var graphMaker = (function () {
             sumSeries = getSumSeries(data),
             trendLineMBObj = makeLineMBObj(sumSeries),
             trendLineFun = ss.linearRegressionLine(trendLineMBObj),
-            slopeIsNegitive = trendLineMBObj.b < 0,
+            slopeIsNegitive = trendLineMBObj.m < 0,
             pointsCountMax = 25,
             dataPoint, i,
             isPositive = true;
+        console.log("slopeIsNegitive", slopeIsNegitive);
 
         //go till we get to negitive or the max
         for (i = 0; isPositive && (slopeIsNegitive || i < pointsCountMax); ++i) {
@@ -113,7 +126,7 @@ var graphMaker = (function () {
             };
 
             //check if we hit negitive yet
-            if (dataPoint.y < 0) {
+            if (dataPoint.y < 0.5) {
                 dataPoint.y = 0;
                 isPositive = false;
             }
@@ -144,7 +157,9 @@ var graphMaker = (function () {
         }
 
         function getSeriesToPlot(data) {
-            var series = [].concat(data.series),
+            var series = data.series.filter(function (siri) {
+                    return siri.showIt;
+                }),
                 addSeriesToPlot = data.addedSeries.filter(function (siri) {
                     return siri.showIt;
                 });

@@ -71,26 +71,26 @@ var graphMaker = (function () {
         addSeries("Sum", seriesOut, false, 'line', data);
     }
 
+    function getSumSeries(data) {
+        var sumSeries;
+        data.addedSeries.forEach(function (siri) {
+            if (siri.name === "Sum") {
+                sumSeries = siri;
+            }
+        });
+
+        //check if we didn't find one
+        if (typeof sumSeries === "undefined") {
+            throw new Error("Must run addSumSeries() before addTrendLine().");
+        }
+
+        return sumSeries;
+    }
     /***********************************************************
      ********************* ADD TREND LINE **********************
      ***********************************************************/
     function addTrendLine(data) {
 
-        function getSumSeries(data) {
-            var sumSeries;
-            data.addedSeries.forEach(function (siri) {
-                if (siri.name === "Sum") {
-                    sumSeries = siri;
-                }
-            });
-
-            //check if we didn't find one
-            if (typeof sumSeries === "undefined") {
-                throw new Error("Must run addSumSeries() before addTrendLine().");
-            }
-
-            return sumSeries;
-        }
 
         function makeLineMBObj(sumSeries) {
             //make it the correct format
@@ -141,6 +141,26 @@ var graphMaker = (function () {
         addSeries("Trend", seriesOut, true, "line", data);
     }
 
+    function addDueDateLine(data) {
+
+        function getMaxY(max, day) {
+            return Math.max(max, day.y);
+        }
+
+        var sumSeries = getSumSeries(data),
+            maxY = sumSeries.data.reduce(getMaxY, 0),
+            seriesOut = [{
+                    x: data.settings.dueDate,
+                    y: 0
+                }, {
+                    x: data.settings.dueDate,
+                    y: maxY
+                }
+            ];
+
+        //save it
+        addSeries("DueDate", seriesOut, true, "line", data);
+    }
 
     /***********************************************************
      *********************** MAKE CHART ************************
@@ -255,6 +275,7 @@ var graphMaker = (function () {
 
         addSumSeries(data);
         addTrendLine(data);
+        addDueDateLine(data);
         console.log("fixed data:", data);
 
         //plot it

@@ -373,7 +373,7 @@ var graphMaker = (function () {
             data: {
                 xs: xs,
                 columns: columns,
-                type: 'bar',
+                type: 'area',
                 types: types,
                 groups: [groups]
             },

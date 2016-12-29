@@ -19,7 +19,6 @@ var data = {
         {
             name: "Josh",
             showIt: true,
-            type: "bar",
             data: [{
                     x: dateIn(2016, 1, 1),
                     y: 30
@@ -43,7 +42,6 @@ var data = {
         }, {
             name: "Corey",
             showIt: true,
-            type: "bar",
             data: [{
                     x: dateIn(2016, 1, 1),
                     y: 20

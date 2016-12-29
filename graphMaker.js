@@ -3,6 +3,10 @@
 /* global c3, ss, console, moment, constants */
 
 var graphMaker = (function () {
+    function offsetFromDate(date, offset) {
+        return moment(date, constants.DATE_FORMAT).add(offset, 'days').format(constants.DATE_FORMAT);
+    }
+
 
     /***********************************************************
      *********************** ADD SERIES ************************
@@ -102,9 +106,6 @@ var graphMaker = (function () {
             return ss.linearRegression(sumDataSet);
         }
 
-        function offsetFromDate(date, offset) {
-            return moment(date, constants.DATE_FORMAT).add(offset, 'days').format(constants.DATE_FORMAT);
-        }
 
         var seriesOut = [],
             sumSeries = getSumSeries(data),
@@ -140,7 +141,9 @@ var graphMaker = (function () {
         //save it for later
         addSeries("Trend", seriesOut, true, "line", data);
     }
-
+    /***********************************************************
+     ******************** ADD DUE DATE LINE ********************
+     ***********************************************************/
     function addDueDateLine(data) {
 
         function getMaxY(max, day) {
@@ -160,6 +163,37 @@ var graphMaker = (function () {
 
         //save it
         addSeries("DueDate", seriesOut, true, "line", data);
+    }
+
+    /***********************************************************
+     ****************** ADD ADJUSTMENT LINE ********************
+     ***********************************************************/
+    function addAdjustmentLine(data) {
+
+
+        //get the last x and y in the sum
+        var sumData = getSumSeries(data).data,
+            sumLastDay = sumData[sumData.length - 1],
+            diffInDays = moment(data.settings.dueDate, constants.DATE_FORMAT).diff(moment(sumLastDay.x, constants.DATE_FORMAT), "day"),
+            points = [[0, sumLastDay.y], [diffInDays, 0]],
+            lineMBObj = ss.linearRegression(points),
+            lineFun = ss.linearRegressionLine(lineMBObj),
+            seriesOut = [],
+            i;
+
+
+        // plot points from last to due day
+        for (i = 0; i <= diffInDays; ++i) {
+            seriesOut.push({
+                x: offsetFromDate(sumLastDay.x, i),
+                y: lineFun(i)
+            });
+        }
+
+        console.log("Adustment Line:", JSON.stringify(seriesOut, null, 4));
+
+        //save it
+        addSeries("Adustment Line", seriesOut, true, "line", data);
     }
 
     /***********************************************************
@@ -311,6 +345,7 @@ var graphMaker = (function () {
         addSumSeries(data);
         addTrendLine(data);
         addDueDateLine(data);
+        addAdjustmentLine(data);
         console.log("fixed data:", data);
 
         //plot it

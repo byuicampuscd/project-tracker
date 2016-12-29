@@ -148,7 +148,7 @@ var graphMaker = (function () {
         }
 
         var sumSeries = getSumSeries(data),
-            maxY = sumSeries.data.reduce(getMaxY, 0),
+            maxY = sumSeries.data.reduce(getMaxY, sumSeries.data[0].y),
             seriesOut = [{
                     x: data.settings.dueDate,
                     y: 0
@@ -212,6 +212,39 @@ var graphMaker = (function () {
             return columns;
         }
 
+        function makeTicks(seriesToPlot) {
+            var startingX = moment(seriesToPlot[0].data[0].x, constants.DATE_FORMAT),
+                minX = startingX,
+                maxX = startingX,
+                ticks = [],
+                currentDay, maxDay;
+
+            seriesToPlot.forEach(function (siri) {
+                siri.data.forEach(function (day) {
+                    var dayX = moment(day.x, constants.DATE_FORMAT);
+
+                    if (!maxX.isAfter(dayX)) {
+                        maxX = dayX;
+                    }
+                    if (!minX.isBefore(dayX)) {
+                        minX = dayX;
+                    }
+                });
+            });
+            currentDay = minX;
+            maxDay = maxX;
+
+            while (!currentDay.isSame(maxDay, "day")) {
+                ticks.push(currentDay.format(constants.DATE_FORMAT));
+                currentDay.add(1, "day");
+            }
+
+            //add the last one
+            ticks.push(currentDay.format(constants.DATE_FORMAT));
+
+            return ticks;
+        }
+
         function makeGroups(siri) {
             return siri.name;
         }
@@ -221,7 +254,8 @@ var graphMaker = (function () {
             xs = seriesToPlot.reduce(makeXs, {}),
             columns = seriesToPlot.reduce(makeColumns, []),
             types = data.addedSeries.reduce(makeTypesObj, {}),
-            groups = data.series.map(makeGroups);
+            groups = data.series.map(makeGroups),
+            ticks = makeTicks(seriesToPlot);
 
         console.log("seriesToPlot:", seriesToPlot);
         console.log("xs:", JSON.stringify(xs, null, 4));
@@ -252,7 +286,8 @@ var graphMaker = (function () {
                     type: 'timeseries',
                     tick: {
                         format: "%m/%d",
-                        culling: false
+                        culling: false,
+                        values: ticks
                     }
                 },
                 y: {

@@ -13,7 +13,7 @@
 var data = {
     settings: {
         startDate: dateIn(2016, 1, 1),
-        dueDate: dateIn(2016, 1, 12),
+        dueDate: dateIn(2016, 1, 8),
     },
     series: [
         {
